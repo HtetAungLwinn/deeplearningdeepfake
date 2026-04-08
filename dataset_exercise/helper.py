@@ -49,7 +49,8 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
                 labels = labels.float().unsqueeze(1).to(device)
 
                 outputs = model(images)
-                _, predicted = torch.max(outputs, 1)
+                outputs = torch.sigmoid(outputs)
+                predicted = (outputs > 0.5).float
 
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
@@ -67,7 +68,8 @@ def test(model, test_loader, device):
          
         with torch.no_grad():
             outputs = model(images)
-            _, predicted = torch.max(outputs, 1)   
+            outputs = torch.sigmoid(outputs)
+            predicted = (outputs > 0.5).float   
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
