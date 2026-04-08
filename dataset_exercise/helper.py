@@ -29,6 +29,7 @@ def make_subset(folder, label, n):
 def train(model, data_loader, valid_loader, criterion, optimizer, device, num_epochs=5, lr=0.001):
     for epoch in range(num_epochs):
         model.train()
+        epoch_loss = 0
         for images, labels in data_loader:
             images = images.to(device)
             labels = labels.float().unsqueeze(1).to(device)
@@ -36,6 +37,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
+            epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
         
@@ -56,7 +58,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
                 correct += (predicted == labels).sum().item()
 
         val_accuracy = 100 * correct / total
-        print(f"Epoch [{epoch+1}/{num_epochs}], Validation Accuracy: {val_accuracy:.2f}%")
+        print(f"Epoch [{epoch+1}/{num_epochs}], Validation Accuracy: {val_accuracy:.2f}%, Loss: {epoch_loss / len(data_loader):.4f}")
             
 def test(model, test_loader, device):
     total = 0
@@ -69,7 +71,7 @@ def test(model, test_loader, device):
         with torch.no_grad():
             outputs = model(images)
             outputs = torch.sigmoid(outputs)
-            predicted = (outputs > 0.5).float   
+            predicted = (outputs > 0).float   
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
