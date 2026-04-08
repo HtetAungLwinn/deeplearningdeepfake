@@ -52,7 +52,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
 
                 outputs = model(images)
                 outputs = torch.sigmoid(outputs)
-                predicted = (outputs > 0.5).float
+                predicted = (outputs > 0.5).float()
 
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
@@ -63,6 +63,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
 def test(model, test_loader, device):
     total = 0
     correct = 0
+    model.eval()
     for images, labels in test_loader:
         images = images.to(device)
         labels = labels.float().unsqueeze(1).to(device)
@@ -71,9 +72,9 @@ def test(model, test_loader, device):
         with torch.no_grad():
             outputs = model(images)
             outputs = torch.sigmoid(outputs)
-            predicted = (outputs > 0).float   
+            predicted = (outputs > 0.5).float() 
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
             
-        test_accuracy = 100 * correct / total  
-        print(f"Test accuracy: {test_accuracy:.2f}")
+    test_accuracy = 100 * correct / total  
+    print(f"Test accuracy: {test_accuracy:.2f}")
