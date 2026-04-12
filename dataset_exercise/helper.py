@@ -13,7 +13,7 @@ class RelabelDataset(Dataset):
 
     def __getitem__(self, idx):
         image, _ = self.dataset[idx]
-        return image, self.label
+        return image, torch.tensor(self.label, dtype=torch.long)
 
 def make_dataset(folder, n_1, n_2, transform):
     dataset = datasets.ImageFolder(root=folder, transform=transform)
@@ -37,8 +37,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
         epoch_loss = 0
         for images, labels in data_loader:
             images = images.to(device)
-            labels = labels.float().unsqueeze(1).to(device)
-
+            labels = labels.long().to(device)
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -53,17 +52,15 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
         with torch.no_grad():
             for images, labels in valid_loader:
                 images = images.to(device)
-                labels = labels.float().unsqueeze(1).to(device)
-
+                labels = labels.long()
                 outputs = model(images)
-                outputs = torch.sigmoid(outputs)
-                predicted = (outputs > 0.5).float()
-
+                probs = torch.softmax(outputs, dim=1)
+                predicted = torch.argmax(probs, dim=1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
                 all_labels.extend(labels.cpu().numpy().flatten())
                 all_predicted.extend(predicted.cpu().numpy().flatten())
-                all_probs.extend(outputs.cpu().numpy().flatten())
+                all_probs.extend(probs[:,1].cpu().numpy().flatten())
 
         val_accuracy = 100 * correct / total    
         f1 = f1_score(all_labels, all_predicted)
@@ -72,7 +69,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
         auc = roc_auc_score(all_labels, all_probs)
         cm = confusion_matrix(all_labels, all_predicted)
         cm = torch.tensor(cm)  # convert confusion matrix to tensor too
-        print(f"Epoch : {epoch} ")
+        print(f"\nEpoch : {epoch} ")
         print(f"Train Loss     : {epoch_loss/len(data_loader):.4f}")
         print(f"Validation Accuracy  : {val_accuracy:.2f}%")
         print(f"F1 Score       : {f1:.4f}")
@@ -94,18 +91,18 @@ def test(model, test_loader, device):
     model.eval()
     for images, labels in test_loader:
         images = images.to(device)
-        labels = labels.float().unsqueeze(1).to(device)
+        labels = labels.long().to(device)
 
         with torch.no_grad():
             outputs = model(images)
-            outputs = torch.sigmoid(outputs)
-            predicted = (outputs > 0.5).float() 
+            probs = torch.softmax(outputs, dim=1)
+            predicted = torch.argmax(probs, dim=1) 
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
         
         all_labels.extend(labels.cpu().numpy().flatten())
         all_predicted.extend(predicted.cpu().numpy().flatten())
-        all_probs.extend(outputs.cpu().numpy().flatten())
+        all_probs.extend(probs[:,1].cpu().numpy().flatten())
             
     test_accuracy = 100 * correct / total
     f1 = f1_score(all_labels, all_predicted)
