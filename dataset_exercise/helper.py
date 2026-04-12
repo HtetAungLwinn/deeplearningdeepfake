@@ -28,7 +28,7 @@ def get_indices(dataset):
     return real_indices, fake_indices
 
 
-def train(model, data_loader, valid_loader, criterion, optimizer, device, num_epochs=5):
+def train(model, data_loader, valid_loader, criterion, optimizer, device, scheduler=None, num_epochs=5):
     for epoch in range(num_epochs):
         all_labels = []
         all_predicted = []
@@ -63,6 +63,8 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, num_ep
                 all_probs.extend(probs[:,1].cpu().numpy().flatten())
 
         val_accuracy = 100 * correct / total    
+        if scheduler != None:
+            scheduler.step(val_accuracy)
         f1 = f1_score(all_labels, all_predicted)
         recall = recall_score(all_labels, all_predicted)
         precision = precision_score(all_labels, all_predicted)
