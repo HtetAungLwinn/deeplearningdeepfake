@@ -52,7 +52,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
         with torch.no_grad():
             for images, labels in valid_loader:
                 images = images.to(device)
-                labels = labels.long()
+                labels = labels.long().to(device)
                 outputs = model(images)
                 probs = torch.softmax(outputs, dim=1)
                 predicted = torch.argmax(probs, dim=1)
