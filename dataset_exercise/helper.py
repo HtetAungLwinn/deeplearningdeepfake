@@ -29,6 +29,7 @@ def get_indices(dataset):
 
 
 def train(model, data_loader, valid_loader, criterion, optimizer, device, scheduler=None, num_epochs=5):
+    best_recall = 0
     for epoch in range(num_epochs):
         all_labels = []
         all_predicted = []
@@ -55,7 +56,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
                 labels = labels.long().to(device)
                 outputs = model(images)
                 probs = torch.softmax(outputs, dim=1)
-                predicted = torch.argmax(probs, dim=1)
+                predicted = (probs[:,1]>0.3).long()
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
                 all_labels.extend(labels.cpu().numpy().flatten())
@@ -67,6 +68,9 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
             scheduler.step(val_accuracy)
         f1 = f1_score(all_labels, all_predicted)
         recall = recall_score(all_labels, all_predicted)
+        if recall > best_recall:
+            best_recall = recall
+            torch.save(model.state_dict(), 'best_model.pth')
         precision = precision_score(all_labels, all_predicted)
         auc = roc_auc_score(all_labels, all_probs)
         cm = confusion_matrix(all_labels, all_predicted)
@@ -98,7 +102,7 @@ def test(model, test_loader, device):
         with torch.no_grad():
             outputs = model(images)
             probs = torch.softmax(outputs, dim=1)
-            predicted = torch.argmax(probs, dim=1) 
+            predicted = (probs[:,1]>0.3).long()
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
         
