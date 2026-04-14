@@ -30,6 +30,8 @@ def get_indices(dataset):
 
 def train(model, data_loader, valid_loader, criterion, optimizer, device, scheduler=None, num_epochs=5):
     best_recall = 0
+    loss_values = []
+    val_accuracies = []
     for epoch in range(num_epochs):
         all_labels = []
         all_predicted = []
@@ -45,7 +47,9 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
             epoch_loss += loss.item()
             loss.backward()
             optimizer.step()
+
         
+               
         model.eval()
         correct = 0
         total = 0
@@ -63,7 +67,9 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
                 all_predicted.extend(predicted.cpu().numpy().flatten())
                 all_probs.extend(probs[:,1].cpu().numpy().flatten())
 
-        val_accuracy = 100 * correct / total    
+        val_accuracy = 100 * correct / total
+        val_accuracy.append(val_accuracy)   
+        loss_values.append(epoch_loss)  
         if scheduler != None:
             scheduler.step(val_accuracy)
         f1 = f1_score(all_labels, all_predicted)
@@ -86,6 +92,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
         print(f"                 Predicted Real  Predicted Fake")
         print(f"Actual Real      {cm[0][0].item():<15} {cm[0][1].item()}")
         print(f"Actual Fake      {cm[1][0].item():<15} {cm[1][1].item()}")
+    return loss_values, val_accuracies
 
 
 def test(model, test_loader, device):
