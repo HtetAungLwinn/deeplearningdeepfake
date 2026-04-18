@@ -160,3 +160,4 @@ def test(model, test_loader, device, threshold=None):
     print(f"Actual Real        {cm[0][0].item():<15} {cm[0][1].item()}")
     print(f"Actual Fake        {cm[1][0].item():<15} {cm[1][1].item()}")
     print(f"{'='*50}")
+    return threshold
