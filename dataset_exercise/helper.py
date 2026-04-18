@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset, Subset, ConcatDataset
 import torch
 from torchvision import datasets, transforms, models
-from sklearn.metrics import f1_score, recall_score, roc_auc_score, precision_score, confusion_matrix, precision_recall_curve
+from sklearn.metrics import f1_score, recall_score, roc_auc_score, precision_score, confusion_matrix, precision_recall_curve, average_precision_score
 
 class RelabelDataset(Dataset):
     def __init__(self, dataset, label):
@@ -29,7 +29,7 @@ def get_indices(dataset):
 
 
 def train(model, data_loader, valid_loader, criterion, optimizer, device, scheduler=None, num_epochs=5):
-    best_recall = 0
+    best_f1 = 0
     loss_values = []
     val_accuracies = []
 
@@ -60,7 +60,7 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
                 labels = labels.long().to(device)
                 outputs = model(images)
                 probs = torch.softmax(outputs, dim=1)
-                predicted = (probs[:, 1] > 0.3).long()
+                predicted = (probs[:, 1] > best_threshold).long()
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
                 all_labels.extend(labels.cpu().numpy().flatten())
@@ -86,8 +86,8 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
         cm = confusion_matrix(all_labels, all_predicted)
         cm = torch.tensor(cm)
 
-        if recall > best_recall:
-            best_recall = recall
+        if f1 > best_f1:
+            best_f1 = f1
             torch.save(model.state_dict(), 'best_model.pth')
 
         print(f"\nEpoch : {epoch}")
@@ -102,11 +102,13 @@ def train(model, data_loader, valid_loader, criterion, optimizer, device, schedu
         print(f"                 Predicted Real  Predicted Fake")
         print(f"Actual Real      {cm[0][0].item():<15} {cm[0][1].item()}")
         print(f"Actual Fake      {cm[1][0].item():<15} {cm[1][1].item()}")
+        pr_auc = average_precision_score(all_labels, all_probs)
+        print(f"PR-AUC         : {pr_auc:.4f}")
 
     return loss_values, val_accuracies, best_threshold
 
 
-def test(model, test_loader, device, threshold=0.3):
+def test(model, test_loader, device, threshold=0.5):
     total = 0
     correct = 0
     all_labels = []
@@ -146,3 +148,5 @@ def test(model, test_loader, device, threshold=0.3):
     print(f"                 Predicted Real  Predicted Fake")
     print(f"Actual Real      {cm[0][0].item():<15} {cm[0][1].item()}")
     print(f"Actual Fake      {cm[1][0].item():<15} {cm[1][1].item()}")
+    pr_auc = average_precision_score(all_labels, all_probs)
+    print(f"PR-AUC         : {pr_auc:.4f}")
