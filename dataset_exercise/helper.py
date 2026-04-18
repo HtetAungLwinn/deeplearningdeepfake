@@ -135,6 +135,7 @@ def test(model, test_loader, device, threshold=None):
         precisions, recalls, thresholds = precision_recall_curve(all_labels, all_probs)
         f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-8)
         threshold = thresholds[f1_scores.argmax()]
+        
         print(f"(Optimal threshold computed from test data: {threshold:.4f})")
     
     all_predicted = (all_probs > threshold).astype(int)
